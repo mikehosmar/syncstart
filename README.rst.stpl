@@ -32,11 +32,17 @@ EXAMPLES
 
 ::
 
+  # compute audio offset with default settings:
   syncstart from_s10.m4a from_gopro.m4p
-  syncstart from_s10.m4a from_gopro.m4p -t 10
-  syncstart from_s10.m4a from_gopro.m4p -t 30
-  syncstart from_s10.m4a from_gopro.m4p -sndl 0
 
+  # compute audio offset using first 10 seconds with denoising, normalization and a 300 Hz lowpass filter:
+  syncstart video1.mp4 video2.mkv -t 10 -dnl 300
+
+  # compute video offset using first 20 seconds, don't show plots, only output final result:
+  syncstart video1.mp4 video2.mkv -vsq
+
+  # compute video offset using seconds 15 to 25 with denoising, cropping and normalization:
+  syncstart video1.mp4 video2.mkv -b 15 -t 10 -vdcn
 
 License
 -------

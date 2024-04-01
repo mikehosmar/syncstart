@@ -23,7 +23,6 @@ References:
 Within Python:
 
 from syncstart import file_offset
-file_offset
 
 """
 
@@ -184,7 +183,9 @@ def corrabs(s1,s2):
 
 def cli_parser(**ka):
   import argparse
-  parser = argparse.ArgumentParser(description=file_offset.__doc__,
+  parser = argparse.ArgumentParser(
+    prog='syncstart',
+    description=file_offset.__doc__,
     formatter_class=argparse.RawDescriptionHelpFormatter)
   parser.add_argument('--version', action='version', version = __version__)
 

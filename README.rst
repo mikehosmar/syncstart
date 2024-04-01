@@ -9,13 +9,13 @@ Command line help::
 
     usage: syncstart [-h] [--version] [-v] [-b BEGIN] [-t TAKE] [-n] [-d] [-l LOWPASS] [-c] [-s] [-q] in1 in2
     
-    CLI interface to sync two media files using their audio streams.
+    CLI interface to sync two media files using their audio or video streams.
       ffmpeg needs to be available.
       
     
     positional arguments:
-      in1                   First media file to sync with second, using audio.
-      in2                   Second media file to sync with first, using audio.
+      in1                   First media file to sync with second.
+      in2                   Second media file to sync with first.
     
     options:
       -h, --help            show this help message and exit
@@ -60,7 +60,6 @@ References:
 Within Python:
 
 from syncstart import file_offset
-file_offset
 
 
 
@@ -79,16 +78,15 @@ EXAMPLES
 
   # compute audio offset with default settings:
   syncstart from_s10.m4a from_gopro.m4p
-  
+
   # compute audio offset using first 10 seconds with denoising, normalization and a 300 Hz lowpass filter:
   syncstart video1.mp4 video2.mkv -t 10 -dnl 300
-  
+
   # compute video offset using first 20 seconds, don't show plots, only output final result:
   syncstart video1.mp4 video2.mkv -vsq
-  
+
   # compute video offset using seconds 15 to 25 with denoising, cropping and normalization:
   syncstart video1.mp4 video2.mkv -b 15 -t 10 -vdcn
-
 
 License
 -------

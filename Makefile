@@ -4,7 +4,7 @@ test:
 	pytest
 
 man:
-	pip install --user -e .
+	pip install --user -e . &>/dev/null || true
 	stpl README.rst.stpl README.rst
 	pandoc README.rst -s -t man -o syncstart.1
 
@@ -12,7 +12,7 @@ check:
 	restview --long-description --strict
 
 dist: man
-	sudo python setup.py bdist_wheel
+	sudo python -m build .
 
 up:
 	twine upload dist/`ls dist -rt | tail -1`

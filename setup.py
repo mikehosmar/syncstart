@@ -28,7 +28,7 @@ setup(
     url="https://github.com/rpuntaie/syncstart",
     py_modules=["syncstart"],
     data_files=[("man/man1", ["syncstart.1"])],
-    install_requires=['numpy','scipy','matplotlib'],
+    install_requires=['numpy','scipy','matplotlib','python-opencv'],
     setup_requires=['stpl','restview'],
     python_requires='>=3.6',
     keywords='media file synchronization',
