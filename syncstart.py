@@ -77,12 +77,12 @@ def z_score_normalization(array):
   return normalized_array
 
 def get_max_rate(in1,in2):
-  probe_audio = 'ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of default=noprint_wrappers=1 "{}"'
-  probe_video = 'ffprobe -v error -select_streams v:0 -show_entries stream=avg_frame_rate -of default=noprint_wrappers=1 "{}"'
+  probe_audio = 'ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of default=noprint_wrappers=1'.split()
+  probe_video = 'ffprobe -v error -select_streams v:0 -show_entries stream=avg_frame_rate -of default=noprint_wrappers=1'.split()
   command = probe_video if video else probe_audio
   rates = []
   for file in [in1,in2]:
-    result = subprocess.run(command.format(file), capture_output=True, text=True)
+    result = subprocess.run(command+[file], capture_output=True, text=True)
     rates.append( eval(result.stdout.split('=')[1]) )
   return max(rates)
 
