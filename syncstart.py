@@ -18,6 +18,7 @@ References:
 
 - https://ffmpeg.org/ffmpeg-all.html
 - https://dsp.stackexchange.com/questions/736/how-do-i-implement-cross-correlation-to-prove-two-audio-files-are-similar
+- https://dsp.stackexchange.com/questions/18846/map-time-difference-between-two-similar-videos
 
 Within Python:
 
