@@ -7,7 +7,9 @@ The steps taken by ``syncstart``:
 - process and extract sample audio/video clips using ffmpeg with some default and optional filters
 - read the two clips into a 1D array and apply optional z-score normalization
 - compute offset via correlation using scipy ifft/fft
-- print and return result and optionally show in diagrams
+- print ffmpeg/ffprobe output or optionally quiet that
+- show in diagrams or optionally suppress that
+- print result
 
 Requirements:
 
@@ -76,14 +78,31 @@ def z_score_normalization(array):
   normalized_array = (array - mean) / std_dev
   return normalized_array
 
+def header(cmdstr):
+  hdr = '-'*len(cmdstr)
+  print('%s\n%s\n%s'%(hdr,cmdstr,hdr))
+
 def get_max_rate(in1,in2):
   probe_audio = 'ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of default=noprint_wrappers=1'.split()
   probe_video = 'ffprobe -v error -select_streams v:0 -show_entries stream=avg_frame_rate -of default=noprint_wrappers=1'.split()
   command = probe_video if video else probe_audio
   rates = []
   for file in [in1,in2]:
-    result = subprocess.run(command+[file], capture_output=True, text=True)
-    rates.append( eval(result.stdout.split('=')[1]) )
+    cmdlist = command+[file]
+    cmdstr = ' '.join(cmdlist)
+    if not quiet: header(cmdstr)
+    result = subprocess.run(cmdlist,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            text=True)
+    if result.returncode == 0:
+        if not quiet:
+            print(result.stdout)
+        rates.append( eval(result.stdout.split('=')[1]) )
+    else:
+        print('FAIL in:\n',cmdstr)
+        print(result.stderr)
+        exit(1)
   return max(rates)
 
 def read_video(input_video):
@@ -112,10 +131,9 @@ def read_video(input_video):
   return brightdiff
 
 def in_out(command,infile,outfile):
-  if not quiet: #default
-    hdr = '-'*len(command)
-    print('%s\n%s\n%s'%(hdr,command,hdr))
-  ret = os.system(command.format(infile,outfile))
+  cmdstr = command.format(infile,outfile)
+  if not quiet: header(cmdstr)
+  ret = os.system(cmdstr)
   if 0 != ret:
     sys.exit(ret)
 
@@ -253,7 +271,7 @@ def cli_parser(**ka):
       dest='show',
       action='store_false',
       default=True,
-      help='Turn off "show diagrams", in case you are confident.')
+      help='Suppress "show diagrams", in case you are confident.')
   if 'quiet' not in ka:
     parser.add_argument(
       '-q','--quiet',
