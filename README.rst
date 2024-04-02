@@ -7,7 +7,7 @@ SYNOPSIS
 
 Command line help::
 
-    usage: syncstart [-h] [--version] [-v] [-b BEGIN] [-t TAKE] [-n] [-d] [-l LOWPASS] [-c] [-s] [-q] in1 in2
+    usage: syncstart [-h] [--version] [-v] [-b BEGIN] [-t TAKE] [-n] [-d] [-l LOWPASS] [-c] [-s] [-q] [-p PEAK] in1 in2
     
     CLI interface to sync two media files using their audio or video streams.
       ffmpeg needs to be available.
@@ -29,9 +29,9 @@ Command line help::
       -l LOWPASS, --lowpass LOWPASS
                             Audio option: Discards frequencies above the specified Hz, e.g., 300. 0 == off (default)
       -c, --crop            Video option: Crop to 4:3. Helpful when aspect ratios differ.
-      -s, --show            Turn off "show diagrams", in case you are confident.
-      -q, --quiet           Suppresses standard output except for the CSV result. Output will be:
-                            file_to_advance,seconds_to_advance
+      -s, --show            Suppress "show diagrams", in case you are confident.
+      -q, --quiet           Suppresses standard output except for the CSV result. Output will be: file_to_advance,seconds_to_advance
+      -p PEAK, --peak PEAK  Use nth peak in correlation (default 0)
 
 
 DESCRIPTION
@@ -44,7 +44,9 @@ The steps taken by ``syncstart``:
 - process and extract sample audio/video clips using ffmpeg with some default and optional filters
 - read the two clips into a 1D array and apply optional z-score normalization
 - compute offset via correlation using scipy ifft/fft
-- print and return result and optionally show in diagrams
+- print ffmpeg/ffprobe output or optionally quiet that
+- show diagrams to allow MANUAL correction using ZOOM or optionally suppress that
+- print result
 
 Requirements:
 

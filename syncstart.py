@@ -8,7 +8,7 @@ The steps taken by ``syncstart``:
 - read the two clips into a 1D array and apply optional z-score normalization
 - compute offset via correlation using scipy ifft/fft
 - print ffmpeg/ffprobe output or optionally quiet that
-- show in diagrams or optionally suppress that
+- show diagrams to allow MANUAL correction using ZOOM or optionally suppress that
 - print result
 
 Requirements:
@@ -174,17 +174,74 @@ def fig1(title=None):
   global ax
   ax = axs[0]
 
-def show1(fs, s, color=None, title=None, v=None):
+def show1(sr, s, color=None, title=None, v=None):
   if not color: fig1(title)
   if ax and v: ax.axvline(x=v,color='green')
-  plt.plot(np.arange(len(s))/fs, s, color or 'black')
+  plt.plot(np.arange(len(s))/sr, s, color or 'black')
   if not color: plt.show()
 
-def show2(fs,s1,s2,title=None):
-  fig1(title)
-  show1(fs,s1,'blue')
-  show1(fs,s2,'red')
+def show2(sr,s1,s2,plus1minus2,in1,in2):
+  fig1("Matchup")
+  t1,t2 = (0,-plus1minus2) if plus1minus2 < 0 else (plus1minus2,0)
+  r = lambda x: round(x,2)
+  dt = 0
+  choice = True
+  if plus1minus2 < 0:
+    ff,ffclr,ffo,ffoclr,toff = in2,'RED',in1,'BLUE',-plus1minus2/sr
+  else:
+    ff,ffclr,ffo,ffoclr,toff = in1,'BLUE',in2,'RED',plus1minus2/sr
+  show1(sr,s1[t1:],'blue')
+  show1(sr,s2[t2:],'red')
+  plt.legend([
+      f'{ff} ({ffclr}) cut {r(toff)}',
+      f'{ffo} ({ffoclr})',
+      ])
+
+  def on_zoom(event_ax):
+    nonlocal dt, choice
+    choice = plt.fix.get_status()[0]
+    tt = ax.get_xlim()
+    if plus1minus2 < 0:
+      ff,ffclr,ffo,ffoclr,toff = in2,'RED',in1,'BLUE',-plus1minus2/sr
+    else:
+      ff,ffclr,ffo,ffoclr,toff = in1,'BLUE',in2,'RED',plus1minus2/sr
+    dt = tt[1]-tt[0]
+    tlabel = [
+        f'Time from {r(tt[0])} to {r(tt[1])} = {r(dt)} seconds',
+        f'After above choice ZOOM to correct',
+            ]
+    iszoom = abs(tt[0]) > 0.1
+    if iszoom:
+        poff = toff+dt
+        noff = toff-dt
+        if noff < 0:
+            ff,ffo = ffo,ff
+            ffclr,ffoclr = ffoclr,ffclr
+            noff = -noff
+        choice_from = [
+          f'Cut {r(noff)} from {ff}',
+          f'Cut {r(poff)} from {ff}',
+        ]
+        plt.xlabel('\n'.join(tlabel+[choice_from[choice]]))
+    else:
+        plt.xlabel('\n'.join(tlabel))
+
+  plt.fixax = plt.axes(np.array([0.65, 0.94, 0.15, 0.02]))
+  plt.fix = matplotlib.widgets.CheckButtons(plt.fixax,
+                          [f"Fix {ffclr} to left"], [choice])
+  plt.fix.on_clicked(on_zoom)
+  ax.callbacks.connect('xlim_changed', on_zoom)
   plt.show()
+  poff = toff+dt
+  noff = toff-dt
+  if noff < 0:
+      ff,ffo = ffo,ff
+      ffclr,ffoclr = ffoclr,ffclr
+      noff = -noff
+  if choice:
+      return ff,poff
+  else:
+      return ff,noff
 
 def corrabs(s1,s2):
   ls1 = len(s1)
@@ -287,7 +344,7 @@ def cli_parser(**ka):
       dest='peak',
       action='store',
       default=0,
-      help='Use peak in correlation (default 0)')
+      help='Use nth peak in correlation (default 0)')
   return parser
 
 def file_offset(**ka):
@@ -305,23 +362,27 @@ def file_offset(**ka):
   normalize,denoise,lowpass = ka['normalize'],ka['denoise'],ka['lowpass']
   peak = int(ka['peak'])
   loglevel = 16 if quiet else 32
-  sample_rate = get_max_rate(in1,in2)
-  s1,s2 = get_sample(in1,sample_rate),get_sample(in2,sample_rate)
+  sr = get_max_rate(in1,in2)
+  s1,s2 = get_sample(in1,sr),get_sample(in2,sr)
   if normalize:
     s1,s2 = z_score_normalization(s1),z_score_normalization(s2)
   ls1,ls2,padsize,xmax,ca = corrabs(s1,s2)
-  if show: show1(sample_rate,ca,title='Correlation',v=xmax/sample_rate)
+  if show: show1(sr,ca,title='Correlation',v=xmax/sr)
   sync_text = """
 ==============================================================================
 %s needs 'ffmpeg -ss %s' cut to get in sync
 ==============================================================================
 """
   if xmax > padsize // 2:
-    if show: show2(sample_rate,s1,s2[padsize-xmax:],title='Sample Matchup')
-    file,offset = in2,(padsize-xmax)/sample_rate
+    if show:
+      file,offset = show2(sr,s1,s2,-(padsize-xmax),in1,in2)
+    else:
+      file,offset = in2,(padsize-xmax)/sr
   else:
-    if show: show2(sample_rate,s1[xmax:],s2,title='Sample Matchup')
-    file,offset = in1,xmax/sample_rate
+    if show:
+      file,offset = show2(sr,s1,s2,xmax,in1,in2)
+    else:
+      file,offset = in1,xmax/sr
   if not quiet: #default
     print(sync_text%(file,offset))
   else: #quiet
