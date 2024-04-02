@@ -185,6 +185,7 @@ def show2(sr,s1,s2,plus1minus2,in1,in2):
   r = lambda x: round(x,2)
   dt = 0
   choice = True
+  iszoom = False
   if plus1minus2 < 0:
     ff,ffclr,ffo,ffoclr,toff = in2,'RED',in1,'BLUE',-plus1minus2/sr
   else:
@@ -197,7 +198,7 @@ def show2(sr,s1,s2,plus1minus2,in1,in2):
       ])
 
   def on_zoom(event_ax):
-    nonlocal dt, choice
+    nonlocal dt, choice, iszoom
     choice = plt.fix.get_status()[0]
     tt = ax.get_xlim()
     if plus1minus2 < 0:
@@ -231,16 +232,20 @@ def show2(sr,s1,s2,plus1minus2,in1,in2):
   plt.fix.on_clicked(on_zoom)
   ax.callbacks.connect('xlim_changed', on_zoom)
   plt.show()
-  poff = toff+dt
-  noff = toff-dt
-  if noff < 0:
-      ff,ffo = ffo,ff
-      ffclr,ffoclr = ffoclr,ffclr
-      noff = -noff
-  if choice:
-      return ff,poff
+  if iszoom:
+    poff = toff+dt
+    noff = toff-dt
+    if noff < 0:
+        ff,ffo = ffo,ff
+        ffclr,ffoclr = ffoclr,ffclr
+        noff = -noff
+    if choice:
+        return ff,poff
+    else:
+        return ff,noff
   else:
-      return ff,noff
+    return ff, toff
+
 
 def corrabs(s1,s2):
   ls1 = len(s1)
