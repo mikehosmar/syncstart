@@ -56,7 +56,6 @@ lowpass = 0
 crop = False
 quiet = False
 loglevel = 32
-peak = 0
 
 ffmpegvideo = 'ffmpeg -loglevel %s -hwaccel auto -ss %s -i "{}" %s -map 0:v -c:v mjpeg -q 1 -f mjpeg "{}"'
 ffmpegwav = 'ffmpeg -loglevel %s -ss %s -i "{}" %s -map 0:a -c:a pcm_s16le -ac 1 -f wav "{}"'
@@ -254,7 +253,7 @@ def corrabs(s1,s2):
   s2pad[:ls2] = s2
   corr = scipy.fft.ifft(scipy.fft.fft(s1pad)*np.conj(scipy.fft.fft(s2pad)))
   ca = np.absolute(corr)
-  xmax = scipy.signal.find_peaks(ca)[0][peak]
+  xmax = np.argmax(ca)
   return ls1,ls2,padsize,xmax,ca
 
 def cli_parser(**ka):
@@ -338,13 +337,6 @@ def cli_parser(**ka):
       default=False,
       help='Suppresses standard output except for the CSV result.\
       Output will be: file_to_advance,seconds_to_advance')
-  if 'peak' not in ka:
-    parser.add_argument(
-      '-p','--peak',
-      dest='peak',
-      action='store',
-      default=0,
-      help='Use nth peak in correlation (default 0)')
   return parser
 
 def file_offset(**ka):
@@ -356,11 +348,10 @@ def file_offset(**ka):
   args = parser.parse_args().__dict__
   ka.update(args)
 
-  global video,begin,take,normalize,denoise,lowpass,crop,quiet,loglevel,peak
+  global video,begin,take,normalize,denoise,lowpass,crop,quiet,loglevel
   in1,in2,begin,take = ka['in1'],ka['in2'],ka['begin'],ka['take']
   video,crop,quiet,show = ka['video'],ka['crop'],ka['quiet'],ka['show']
   normalize,denoise,lowpass = ka['normalize'],ka['denoise'],ka['lowpass']
-  peak = int(ka['peak'])
   loglevel = 16 if quiet else 32
 
   sr = get_max_rate(in1,in2)
