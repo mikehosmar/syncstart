@@ -362,6 +362,7 @@ def file_offset(**ka):
   normalize,denoise,lowpass = ka['normalize'],ka['denoise'],ka['lowpass']
   peak = int(ka['peak'])
   loglevel = 16 if quiet else 32
+
   sr = get_max_rate(in1,in2)
   s1,s2 = get_sample(in1,sr),get_sample(in2,sr)
   if normalize:
