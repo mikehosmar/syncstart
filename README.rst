@@ -7,7 +7,7 @@ SYNOPSIS
 
 Command line help::
 
-    usage: syncstart [-h] [--version] [-v] [-b BEGIN] [-t TAKE] [-n] [-d] [-l LOWPASS] [-c] [-s] [-q] [-p PEAK] in1 in2
+    usage: syncstart [-h] [--version] [-v] [-b BEGIN] [-t TAKE] [-n] [-d] [-l LOWPASS] [-c] [-s] [-q] in1 in2
     
     CLI interface to sync two media files using their audio or video streams.
       ffmpeg needs to be available.
@@ -30,8 +30,8 @@ Command line help::
                             Audio option: Discards frequencies above the specified Hz, e.g., 300. 0 == off (default)
       -c, --crop            Video option: Crop to 4:3. Helpful when aspect ratios differ.
       -s, --show            Suppress "show diagrams", in case you are confident.
-      -q, --quiet           Suppresses standard output except for the CSV result. Output will be: file_to_advance,seconds_to_advance
-      -p PEAK, --peak PEAK  Use nth peak in correlation (default 0)
+      -q, --quiet           Suppresses standard output except for the CSV result. Output will be:
+                            file_to_advance,seconds_to_advance
 
 
 DESCRIPTION

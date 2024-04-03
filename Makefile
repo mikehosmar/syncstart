@@ -15,6 +15,6 @@ dist: man
 	sudo python -m build .
 
 up:
-	twine upload dist/`ls dist -rt | tail -1`
+	twine upload dist/`ls dist -rt | tail -1` -u__token__ -p`pass show pypi.org/syncstart_api_token`
 
 
