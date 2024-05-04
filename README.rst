@@ -1,5 +1,5 @@
 =======================================
-syncstart(1) Version 1.1.0 \| syncstart
+syncstart(1) Version 1.1.1 \| syncstart
 =======================================
 
 SYNOPSIS
@@ -48,6 +48,14 @@ The steps taken by ``syncstart``:
 - show diagrams to allow MANUAL correction using ZOOM or optionally suppress that
 - print result
 
+MANUAL correction with ZOOM:
+
+- at the checkbox on the top right check or uncheck to make the statement true
+- turn on ZOOM with the magnifying glass on the bottom left
+- draw a rectangle that stretches between two X that should coincide
+  (Y is not relevant but don't make it 0)
+- read the final correction from the top right or in the final output
+
 Requirements:
 
 - ffmpeg and ffprobe installed
@@ -72,6 +80,10 @@ INSTALLATION
 To install for user only, do::
 
    pip install --user syncstart
+
+Or activate a virtualenv and do::
+
+   pip install syncstart
 
 EXAMPLES
 --------

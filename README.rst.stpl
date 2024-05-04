@@ -1,3 +1,5 @@
+% import sys
+% sys.path+=[os.getcwd()]
 % import syncstart
 =======================================
 syncstart(1) Version {{syncstart.__version__}} \| syncstart
@@ -26,6 +28,10 @@ INSTALLATION
 To install for user only, do::
 
    pip install --user syncstart
+
+Or activate a virtualenv and do::
+
+   pip install syncstart
 
 EXAMPLES
 --------

@@ -6,7 +6,6 @@ test:
 
 .PHONY: man
 man:
-	pip install --user -e . &>/dev/null || true
 	stpl README.rst.stpl README.rst
 	pandoc README.rst -s -t man -o syncstart.1
 
