@@ -49,6 +49,7 @@ import pathlib
 import sys
 import subprocess
 
+import contextlib
 __version__ = '1.1.1'
 __author__ = """Roland Puntaier, drolex2"""
 __email__ = 'roland.puntaier@gmail.com'
@@ -148,6 +149,7 @@ def in_out(command,infile,outfile):
 def get_sample(infile,rate):
   outname = pathlib.Path(infile).stem + '_sample'
   with tempfile.TemporaryDirectory() as tempdir:
+  # with contextlib.nullcontext(tempfile.mkdtemp()) as tempdir:
     outfile = pathlib.Path(tempdir)/(outname)
     if video: #compare video
       filters = [video_filters['default']%(take,rate)]
@@ -185,7 +187,7 @@ def show1(sr, s, color=None, title=None, v=None):
   if not color: fig1(title)
   if ax and v: ax.axvline(x=v,color='green')
   plt.plot(np.arange(len(s))/sr, s, color or 'black')
-  if not color: plt.show()
+  if not color: plt.show(block=False)
 
 def show2(sr,s1,s2,plus1minus2,in1,in2):
   fig1("Matchup")
@@ -255,7 +257,7 @@ def show2(sr,s1,s2,plus1minus2,in1,in2):
     return ff, toff
 
 
-def corrabs(s1,s2):
+def corrabs(s1,s2, sr):
   ls1 = len(s1)
   ls2 = len(s2)
   padsize = ls1+ls2+1
@@ -267,7 +269,45 @@ def corrabs(s1,s2):
   corr = scipy.fft.ifft(scipy.fft.fft(s1pad)*np.conj(scipy.fft.fft(s2pad)))
   ca = np.absolute(corr)
   xmax = np.argmax(ca)
-  return ls1,ls2,padsize,xmax,ca
+
+
+  # Hilbert Transform to get the analytic signal
+  analytic_signal = scipy.signal.hilbert(ca)
+  envelope = np.abs(analytic_signal)
+
+  # Smooth the envelope using a low-pass filter
+  def butter_lowpass_filter(data, cutoff, fs, order=4):
+      nyquist = 0.5 * fs
+      normal_cutoff = cutoff / nyquist
+      b, a = scipy.signal.butter(order, normal_cutoff, btype='low', analog=False)
+      return scipy.signal.filtfilt(b, a, data)
+
+  # Parameters for the low-pass filter
+  cutoff_frequency = 5  # Hz
+  sampling_rate = sr  # Hz (adjust to match your data)
+  smoothed_envelope = butter_lowpass_filter(envelope, cutoff_frequency, sampling_rate)
+  # smoothed_signal = butter_lowpass_filter(ca, cutoff_frequency, sampling_rate)
+
+  smoothed_peaks, _ = scipy.signal.find_peaks(smoothed_envelope, height=0.5*np.max(smoothed_envelope),
+                                              prominence=np.max(smoothed_envelope)/10)
+  prominences = scipy.signal.peak_prominences(smoothed_envelope, smoothed_peaks)[0]
+  widths = scipy.signal.peak_widths(smoothed_envelope, smoothed_peaks, rel_height=0.5)[0]
+  # highest peak
+  if len(smoothed_peaks) == 0:
+    print('No peaks found')
+    return ls1,ls2,padsize,xmax,smoothed_envelope,0
+  peak_idx = np.argmax(smoothed_envelope[smoothed_peaks])
+  xmax = smoothed_peaks[peak_idx]
+  snr = prominences[peak_idx]/widths[peak_idx]
+  print(f'Width of correlation peak: {widths[peak_idx]:.2e}')
+  print(f'Peak prominence: {prominences[peak_idx]:.2e}')
+  print(f'calculated SNR: {snr:.2e}')
+
+  # show1(sr,smoothed_signal,title='Smoothed',v=xmax/sr)
+  # show1(sr,smoothed_envelope,title='Hilbert',v=xmax/sr)
+
+  # width = scipy.signal.peak_widths(ca,[xmax],rel_height=0.5)[0]
+  return ls1,ls2,padsize,xmax,smoothed_envelope,snr
 
 def cli_parser(**ka):
   import argparse
@@ -313,6 +353,13 @@ def cli_parser(**ka):
       action='store_true',
       default=False,
       help='Normalizes audio/video values from each stream.')
+  if 'min_snr' not in ka:
+    parser.add_argument(
+      '-r','--min_snr',
+      dest='min_snr',
+      type=int,
+      default=0,
+      help='Used with show=False. Peaks wider than this will cause plots to be shown.')
   if 'denoise' not in ka:
     parser.add_argument(
       '-d','--denoise',
@@ -365,26 +412,29 @@ def file_offset(**ka):
   in1,in2,begin,take = ka['in1'],ka['in2'],ka['begin'],ka['take']
   video,crop,quiet,show = ka['video'],ka['crop'],ka['quiet'],ka['show']
   normalize,denoise,lowpass = ka['normalize'],ka['denoise'],ka['lowpass']
+  min_snr = ka['min_snr']
   loglevel = 16 if quiet else 32
 
   sr = get_max_rate(in1,in2)
   s1,s2 = get_sample(in1,sr),get_sample(in2,sr)
   if normalize:
     s1,s2 = z_score_normalization(s1),z_score_normalization(s2)
-  ls1,ls2,padsize,xmax,ca = corrabs(s1,s2)
-  if show: show1(sr,ca,title='Correlation',v=xmax/sr)
+
+  ls1,ls2,padsize,xmax,ca,snr = corrabs(s1,s2, sr)
+  bad_snr = snr < min_snr
+  if show or bad_snr: show1(sr,ca,title='Correlation',v=xmax/sr)
   sync_text = """
 ==============================================================================
 %s needs 'ffmpeg -ss %s' cut to get in sync
 ==============================================================================
 """
   if xmax > padsize // 2:
-    if show:
+    if show or bad_snr:
       file,offset = show2(sr,s1,s2,-(padsize-xmax),in1,in2)
     else:
       file,offset = in2,(padsize-xmax)/sr
   else:
-    if show:
+    if show or bad_snr:
       file,offset = show2(sr,s1,s2,xmax,in1,in2)
     else:
       file,offset = in1,xmax/sr
@@ -393,7 +443,7 @@ def file_offset(**ka):
   else: #quiet
     ## print csv: file_to_advance,seconds_to_advance
     print("%s,%s"%(file,offset))
-  return file,offset
+  return file,offset,snr
 
 main = file_offset
 if __name__ == '__main__':
